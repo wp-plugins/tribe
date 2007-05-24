@@ -14,6 +14,7 @@ tribe aims to provide team leaders with all the tools they'll need in order to m
 Currently in development, this plugin will see rapid change as it is developed alongside [my team's web site](http://www.teaminq.com/).
 
 Planned features include
+
 * Roster and member profile management integrated with Wordpress' existing user system.
 * Enhanced user profiles including photo, location, age, system specs, and team specific info (date joined, favorite loadout, etc).
 * Member blogs so that your team members can have their own voice on their teams site.

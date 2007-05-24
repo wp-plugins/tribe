@@ -23,6 +23,8 @@ Ok, but what about match history, upcoming games, etc
     04:07 Colosus <Colosus> By clicking on the map, that would take you to that map/match details page where it would list out who played in the match and a writeup of what happened.
     04:07 Colosus <Colosus> The team roster page would be kind of like the TW staff page where each user has a profile picture, name, location, date joined, age and a small blurb about themselves. It would then link to a page like the Insider page you made where it has a Q&A section of basic info, system setup, keybinds, etc plus news (blog) that the user can edit and their own screenshot section.
     04:07 Colosus <Colosus> The upcoming match page would be just like the match details, but without all the extra info like who played and a writeup. Just the maps being played and against who.
+    
+    09:56 Colosus|work Yeah. That's fine. There are certain parts of the site that I consider required for release... News, User profiles, match history, calendar, sidebars and a completed style sheet
 */
 
 /*
