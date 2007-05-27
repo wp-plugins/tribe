@@ -34,6 +34,52 @@ Feel free to try it out the development version as-is, but please consider that 
 
 Currently the design of tribe is centered around competitive teams playing FPS games.  As the plugin matures, more general team management things may be introduced, but its focus will remain the same.  (i.e. I don't ever foresee a DKP system being coded into tribe)
 
+== Version Map ==
+
+* 0.1b
+** Member categories
+** User profile extensions
+** Roster and profile pages
+
 == Usage Guide ==
 
-Once I have some features written, this section will have something in it!
+= Member Roles =
+
+In tribe, some of the default Wordpress user roles are replaced by team-specific ones.  Administrator becomes Team Captain, Editor becomes Coordinator, and Author becomes Member.  This allows you to organize your team's roster while providing varying levels of administrative access to your team leaders.  Note: the 'admin' user is excluded from being a team member.
+
+= Profile extension =
+
+tribe adds fields to each user's profile for team-related information.  These fields include:
+
+* Status (Active, Inactive)
+* Join Date
+* Age
+* Location
+* Quote
+* System Specs
+* Q & A
+
+In the main plugin options page, any Team Captain can create 'Questions' which will be displayed on each member's profile admin screen.  Your team members can answer these questions so that the resulting Q&A can be displayed on their profile page.
+
+= Categories =
+
+Upon activation, tribe will create various categories.  These are:
+
+* Team News
+* Members
+
+Any post which is assigned to the 'Team News' category will automatically have its comments and pings disabled.  In the future, this will be a plugin option.
+
+Underneath the 'Members' category, a category will be created for each team member.  Currently any member can post to any category, but I may add in some extra permission code in the future.  For now just tell your team to keep it to their own category! :]  By having separate categories for each member, it allows you to have links such as the following: http://www.yourteam.com/blogs/members/nickname.  (tribe defaults your category base to '/blogs', this can be changed under Options -> Permalinks)
+
+= Pages =
+
+Upon activation, tribe will also create various pages.  These are:
+
+* Roster
+
+Underneath the 'Roster' page, a page will be created for each team member.  When the 'Roster' page is viewed, the plugin will instead display the 'roster.php' template located in the plugin directory.  To override this template, copy it into your theme directory and edit as needed.  Use the `tribe::get_members($type)` function to retrieve you team members.
+
+When any page underneath 'Roster' is viewed, the plugin will instead display the 'profile.php' template located in the plugin directory.  To override this template, copy it into your theme directory and edit as needed.
+
+Remember to keep the original templates in the plugin directory in case your alterations break the template and you need to start over.
