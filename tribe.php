@@ -243,6 +243,7 @@ class tribe {
 
     function options_page() {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            update_option('tribe_name', stripslashes($_POST['tribe_name']));
             $questions = $_POST['tribe_questions'];
             foreach ($questions as $index => $question) {
                 if (!$question) {
@@ -259,6 +260,9 @@ class tribe {
     		<p class="submit">
             <input type="submit" name="Submit" value="Update Options &raquo;" />
             </p>
+            <h3>General</h3>
+            Team Name: (generally {Tag} {Name})<br/>
+            <input type="text" name="tribe_name" value="<?= attribute_escape(get_option('tribe_name'))?>">
             <h3>Questions</h3>
     	    <p>Questions here will be be shown to your team members on their profile pages.</p>
     	    <?
