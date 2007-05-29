@@ -25,17 +25,6 @@ Ok, but what about match history, upcoming games, etc
     04:07 Colosus <Colosus> The upcoming match page would be just like the match details, but without all the extra info like who played and a writeup. Just the maps being played and against who.
     
     09:56 Colosus|work Yeah. That's fine. There are certain parts of the site that I consider required for release... News, User profiles, match history, calendar, sidebars and a completed style sheet
-    
-    08:17 Colosus Cool. Just so we're on the same page... The questions should be in bold (not a big deal). When you go to a users blog, the nav menu should match that at the top (as well as the sidebars). The profile navbar shouldn't be bold except for the page you're on. And as I said earlier, the system should be separate fields so that everyone's page is consistent
-    08:18 Colosus We also need to think about ways to simplify people posting in their blogs (maybe this is a permissions thing so that they only have access to post in their own space). And clean up the profile page a little.
-*/
-
-/*
- * main category for front page news
- * individual categories for each member
-    permissions need to restrict their posting abilities
- * roster page listing all team members
- * additional user info for member stuff
 */
 
 class tribe {
