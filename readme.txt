@@ -37,9 +37,22 @@ Currently the design of tribe is centered around competitive teams playing FPS g
 == Version Map ==
 
 * 0.1b
-** Member categories
+** Member blogs
 ** User profile extensions
 ** Roster and profile pages
+* 0.2b
+** Match History page
+** Upcoming Matches page
+* 0.3b
+** Recruitment form
+* 0.4b
+** Member Match History page
+** Member Keybinds page
+** Member Screenshots page
+* 0.5b
+** Next Match widget
+** Match History widget
+** Server status widget
 
 == Usage Guide ==
 
