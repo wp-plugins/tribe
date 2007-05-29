@@ -195,8 +195,33 @@ class tribe {
             <input type="text" name="tribe_location" value="<?= attribute_escape($profileuser->tribe_location) ?>" /></label></p>
             <p><label>Quote:<br />
             <textarea name="tribe_quote"/><?= attribute_escape($profileuser->tribe_quote) ?></textarea></label></p>
-            <p><label>System Specs:<br />
-            <textarea name="tribe_specs"/><?= attribute_escape($profileuser->tribe_specs) ?></textarea></label></p>
+        </fieldset>
+        <fieldset>
+            <legend>System Specs</legend>
+            <?
+            if (!is_array($profileuser->tribe_specs)) {
+                $profileuser->tribe_specs = null;
+            }
+            if (!$profileuser->tribe_specs) {
+                $profileuser->tribe_specs = array(
+                                                'Motherboard' => '',
+                                                'Processor' => '',
+                                                'Graphics Card(s)' => '',
+                                                'Sound Card' => '',
+                                                'Memory' => '',
+                                                'Hard Drive(s)' => '',
+                                                'Monitor(s)' => '',
+                                                'Keyboard' => '',
+                                                'Mouse' => '',
+                                                'OS' => ''
+                                            );
+            }
+            foreach ($profileuser->tribe_specs as $key => $value) {
+                ?>
+                <p><label><?=$key?>: <input type="text" name="tribe_specs[<?=$key?>]" value="<?= attribute_escape($value) ?>" /></label></p>
+                <?
+            }
+            ?>
         </fieldset>
         <fieldset>
             <legend>tribe Q &amp; A</legend>
@@ -223,7 +248,7 @@ class tribe {
         update_usermeta($userdata->ID, 'tribe_age', (int) $_POST['tribe_age']);
         update_usermeta($userdata->ID, 'tribe_location', stripslashes($_POST['tribe_location']));
         update_usermeta($userdata->ID, 'tribe_quote', stripslashes($_POST['tribe_quote']));
-        update_usermeta($userdata->ID, 'tribe_specs', stripslashes($_POST['tribe_specs']));
+        update_usermeta($userdata->ID, 'tribe_specs', stripslashes_deep($_POST['tribe_specs']));
         update_usermeta($userdata->ID, 'tribe_answers', stripslashes_deep($_POST['tribe_answers']));
     }
 
