@@ -25,6 +25,9 @@ Ok, but what about match history, upcoming games, etc
     04:07 Colosus <Colosus> The upcoming match page would be just like the match details, but without all the extra info like who played and a writeup. Just the maps being played and against who.
     
     09:56 Colosus|work Yeah. That's fine. There are certain parts of the site that I consider required for release... News, User profiles, match history, calendar, sidebars and a completed style sheet
+    
+    08:17 Colosus Cool. Just so we're on the same page... The questions should be in bold (not a big deal). When you go to a users blog, the nav menu should match that at the top (as well as the sidebars). The profile navbar shouldn't be bold except for the page you're on. And as I said earlier, the system should be separate fields so that everyone's page is consistent
+    08:18 Colosus We also need to think about ways to simplify people posting in their blogs (maybe this is a permissions thing so that they only have access to post in their own space). And clean up the profile page a little.
 */
 
 /*
@@ -36,16 +39,40 @@ Ok, but what about match history, upcoming games, etc
 */
 
 class tribe {
+    
+// Public
+    
+    function get_members($type = 'author') {
+        $users = get_users_of_blog();
+        
+        $return_users = array();
+        foreach ($users as $user) {
+            $user_roles = unserialize($user->meta_value);
+            if ($user_roles[$type] && $user->user_login != 'admin') {
+                $return_users[] = new WP_User($user->user_id);
+            }
+        }
+        
+        return $return_users;
+    }
+    
+// Private
+
+    function admin_menu() {
+        add_options_page('tribe', 'tribe', 'can_edit_tribe_options', basename(__FILE__), array('tribe', 'options_page'));
+    }
+
     function activate() {
         $roles = get_option('wp_user_roles');
         $roles['administrator']['name'] = "Team Captain";
-        $roles['administrator']['capabilities']['team_member'] = 1;
+        $roles['administrator']['capabilities']['is_team_member'] = 1;
+        $roles['administrator']['capabilities']['can_edit_tribe_options'] = 1;
         $roles['editor']['name'] = 'Coordinator';
-        $roles['editor']['capabilities']['team_member'] = 1;
+        $roles['editor']['capabilities']['is_team_member'] = 1;
         $roles['author']['name'] = 'Member';
-        $roles['author']['capabilities']['team_member'] = 1;
+        $roles['author']['capabilities']['is_team_member'] = 1;
         update_option('wp_user_roles', $roles);
-        
+    
         update_option('users_can_register', 1);
         update_option('category_base', '/blogs');
 
@@ -55,7 +82,7 @@ class tribe {
         if (category_exists('Members') <= 1) {
             wp_create_category('Members');
         }
-        
+    
         if (get_page_by_title('Roster') == null) {
             $args = array(
                         'post_title' => 'Roster',
@@ -71,11 +98,11 @@ class tribe {
             }
             wp_insert_post($args);
         }
-        
+    
         $users = get_users_of_blog();
         foreach($users as $userdata) {
             $user = new WP_User($userdata->user_id);
-            if ($user->allcaps['team_member'] && $user->user_login != 'admin') {
+            if ($user->allcaps['is_team_member'] && $user->user_login != 'admin') {
                 $member_cat_id = get_cat_ID('Members');
                 if (category_exists($user->user_nicename)){
                     // they already have cat.  make sure its in the right place
@@ -113,75 +140,31 @@ class tribe {
             }
         }
     }
-    
+
     function deactivate() {
         $roles = get_option('wp_user_roles');
         $roles['administrator']['name'] = "Administrator";
-        unset($roles['administrator']['capabilities']['team_member']);
+        unset($roles['administrator']['capabilities']['is_team_member']);
+        unset($roles['administrator']['capabilities']['can_edit_tribe_options']);
         $roles['editor']['name'] = 'Editor';
-        unset($roles['editor']['capabilities']['team_member']);
+        unset($roles['editor']['capabilities']['is_team_member']);
         $roles['author']['name'] = 'Author';
-        unset($roles['author']['capabilities']['team_member']);
+        unset($roles['author']['capabilities']['is_team_member']);
         update_option('wp_user_roles', $roles);
-        
+    
         update_option('users_can_register', 0);
         update_option('category_base', '');
-        
+    
         // i wish i could hide team news and members cats here, oh well
         // don't want to delete them since we would lose the association
         // b/t those cats and their existing posts.
     }
-    
+
     function dashboard() {
         echo "<pre>";
         echo "</pre>";
     }
-    
-    function profile_update($user_id) {
-        $user = new WP_User($user_id);
-
-        // TODO: bulk update of role doesn't trigger this action
-
-        if ($user->allcaps['team_member'] && $user->user_login != 'admin') {
-            if (!category_exists($user->user_nicename)) {
-                // they don't have a category yet, lets create one underneath 'Members'
-                $member_cat_ID = get_cat_ID('Members');
-                wp_insert_category(array('cat_name' => $user->user_nicename,
-                                         'category_parent' => $member_cat_ID));
-            }
-            // see if we need to create a roster profile page
-            if (!get_page_by_title($user->user_nicename)) {
-                _create_user_profile_page($user);
-            }
-        } else {
-            // check if they have a leftover cat that needs to be cleaned up
-            $user_cat_ID = get_cat_ID($user->user_nicename);
-            if ($user_cat_ID > 1) {
-                wp_delete_category($user_cat_ID);
-            }
-            // clean up roster profile page
-            $user_page = get_page_by_title($user->user_nicename);
-            if ($user_page) {
-                wp_delete_post($user_page->ID);
-            }
-        }
-        
-    }
-    
-    function get_members($type = 'author') {
-        $users = get_users_of_blog();
-        
-        $return_users = array();
-        foreach ($users as $user) {
-            $user_roles = unserialize($user->meta_value);
-            if ($user_roles[$type] && $user->user_login != 'admin') {
-                $return_users[] = new WP_User($user->user_id);
-            }
-        }
-        
-        return $return_users;
-    }
-    
+   
     function publish_post($post_id) {
         global $wpdb;
         
@@ -205,28 +188,123 @@ class tribe {
                 <option<?= ($profileuser->tribe_status=='Inactive'?' selected':'') ?>>Inactive</option>
             </select></label></p>
             <p><label>Join Date: (mm/dd/yyyy)<br />
-            <input type="text" name="tribe_joindate" value="<?= htmlspecialchars($profileuser->tribe_joindate) ?>" /></label></p>
+            <input type="text" name="tribe_joindate" value="<?= attribute_escape($profileuser->tribe_joindate) ?>" /></label></p>
             <p><label>Age:<br />
-            <input type="text" name="tribe_age" value="<?= htmlspecialchars($profileuser->tribe_age) ?>" /></label></p>
+            <input type="text" name="tribe_age" value="<?= attribute_escape($profileuser->tribe_age) ?>" /></label></p>
+            <p><label>Location:<br />
+            <input type="text" name="tribe_location" value="<?= attribute_escape($profileuser->tribe_location) ?>" /></label></p>
+            <p><label>Quote:<br />
+            <textarea name="tribe_quote"/><?= attribute_escape($profileuser->tribe_quote) ?></textarea></label></p>
+            <p><label>System Specs:<br />
+            <textarea name="tribe_specs"/><?= attribute_escape($profileuser->tribe_specs) ?></textarea></label></p>
+        </fieldset>
+        <fieldset>
+            <legend>tribe Q &amp; A</legend>
+            <?
+            $questions = get_option('tribe_questions');
+            if ($questions) {
+                foreach ($questions as $index => $question) {
+                    ?>                    
+                    <p><label><?=attribute_escape($question)?><br />
+                    <textarea name="tribe_answers[]"/><?= attribute_escape($profileuser->tribe_answers[$index]) ?></textarea></label></p>
+                    <?
+                }
+            }
+            ?>
         </fieldset>
         <?
     }
     
     function save_user_options() {
-        global $wpdb, $userdata;
+        global $userdata;
 
-        update_usermeta($userdata->ID, 'tribe_status', $wpdb->escape($_POST['tribe_status']));        
-        update_usermeta($userdata->ID, 'tribe_joindate', $wpdb->escape(stripslashes($_POST['tribe_joindate'])));
+        update_usermeta($userdata->ID, 'tribe_status', stripslashes($_POST['tribe_status']));        
+        update_usermeta($userdata->ID, 'tribe_joindate', stripslashes($_POST['tribe_joindate']));
         update_usermeta($userdata->ID, 'tribe_age', (int) $_POST['tribe_age']);
+        update_usermeta($userdata->ID, 'tribe_location', stripslashes($_POST['tribe_location']));
+        update_usermeta($userdata->ID, 'tribe_quote', stripslashes($_POST['tribe_quote']));
+        update_usermeta($userdata->ID, 'tribe_specs', stripslashes($_POST['tribe_specs']));
+        update_usermeta($userdata->ID, 'tribe_answers', stripslashes_deep($_POST['tribe_answers']));
+    }
+
+    function options_page() {
+        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            $questions = $_POST['tribe_questions'];
+            foreach ($questions as $index => $question) {
+                if (!$question) {
+                    unset($questions[$index]);
+                }
+            }
+            $questions = stripslashes_deep(array_values($questions));
+            update_option('tribe_questions', $questions);
+        }
+        ?>
+    	<div class="wrap">
+    		<h2>tribe Options</h2>
+    		<form method="post" action="<?=$_SERVER["REQUEST_URI"]?>">
+    		<p class="submit">
+            <input type="submit" name="Submit" value="Update Options &raquo;" />
+            </p>
+            <h3>Questions</h3>
+    	    <p>Questions here will be be shown to your team members on their profile pages.</p>
+    	    <?
+    	    $questions = get_option('tribe_questions');
+    	    if ($questions) {
+    	        foreach ($questions as $index => $question) {
+    	            ?>
+    	            <br/>
+    	            Question <?=($index+1)?>: <input size="100" type="text" name="tribe_questions[<?=$index?>]" value="<?=attribute_escape($question)?>">
+    	            <?
+    		    }
+            }
+    	    ?>
+    	    <br/><br/>
+    	    New Question:<br/><input size="100" type="text" name="tribe_questions[]">
+    		<p class="submit">
+            <input type="submit" name="Submit" value="Update Options &raquo;" />
+            </p>
+    		</form>
+    	</div>
+        <?
+    }
+
+    function profile_update($user_id) {
+        $user = new WP_User($user_id);
+
+        // TODO: bulk update of role doesn't trigger this action
+
+        if ($user->allcaps['is_team_member'] && $user->user_login != 'admin') {
+            if (!category_exists($user->user_nicename)) {
+                // they don't have a category yet, lets create one underneath 'Members'
+                $member_cat_ID = get_cat_ID('Members');
+                wp_insert_category(array('cat_name' => $user->user_nicename,
+                                         'category_parent' => $member_cat_ID));
+            }
+            // see if we need to create a roster profile page
+            if (!get_page_by_title($user->user_nicename)) {
+                _create_user_profile_page($user);
+            }
+        } else {
+            // check if they have a leftover cat that needs to be cleaned up
+            $user_cat_ID = get_cat_ID($user->user_nicename);
+            if ($user_cat_ID > 1) {
+                wp_delete_category($user_cat_ID);
+            }
+            // clean up roster profile page
+            $user_page = get_page_by_title($user->user_nicename);
+            if ($user_page) {
+                wp_delete_post($user_page->ID);
+            }
+        }    
     }
     
     function widget_init() {
         if ( !function_exists('register_sidebar_widget') )
     		return;
     	
-    	function future_matches($args) {
+    	function next_match($args) {
     	    extract($args);
-    	    $title = 'Future Matches';
+    	    $title = 'Next Match';
     	    
             echo $before_widget . $before_title . $title . $after_title;
             ?>
@@ -308,13 +386,41 @@ class tribe {
     	    echo $after_widget;
     	}
     	
-    	register_sidebar_widget(array('Future Matches', 'widgets'), 'future_matches');
+    	function profile_manager($args) {
+    	    extract($args);
+    	    $title = 'Profile Manager';
+    	    
+            echo $before_widget . $before_title . $title . $after_title;
+    	    ?>    	    
+            &nbsp;<b class="smtext">[Inq]Someguy</b>
+            <div class="sepline2"></div>
+            <div class="ebullet"><a class="smlink" href="">Edit Profile Info</a></div>
+            <div class="bullet"><a class="smlink" href="">Log Out</a></div>
+            <div class="sepline"></div>
+            &nbsp;<b>Blog Options</b>
+            <div class="sepline2"></div>
+            <div class="abullet"><a class="smlink" href="">Add Blog Post</a></div>
+            <br />
+            &nbsp;<b>Keybind Options</b>
+            <div class="sepline2"></div>
+
+            <div class="ebullet"><a class="smlink" href="">Edit Keybinds</a></div>
+            <div class="abullet"><a class="smlink" href="">Add Keybinds</a></div>
+            <br />
+            &nbsp;<b>Screenshot Options</b>
+            <div class="sepline2"></div>
+            <div class="ebullet"><a class="smlink" href="">Edit Screenshots</a></div>
+            <div class="abullet"><a class="smlink" href="">Add Screenshots</a></div>
+    	    <?
+    	    echo $after_widget;
+    	}
+    	
+    	register_sidebar_widget(array('Next Match', 'widgets'), 'next_match');
     	register_sidebar_widget(array('Our Servers', 'widgets'), 'server_status');
     	register_sidebar_widget(array('Match History', 'widgets'), 'match_history');
     	register_sidebar_widget(array('Team Roster', 'widgets'), 'roster');
+    	register_sidebar_widget(array('Profile Manager', 'widgets'), 'profile_manager');
     }
-
-// Private
 
     function _create_user_profile_page($user, $create_new = true) {
         if ($user) {
@@ -329,7 +435,12 @@ class tribe {
                 'comment_status' => 'closed',
                 'ping_status' => 'closed'
                 );
-                
+            
+            $templates = get_page_templates();
+            if (isset($templates['profile'])) {
+                $args['page_template'] = $templates['profile'];
+            }
+            
             if ($create_new) {
                 wp_insert_post($args);
             } else {
@@ -337,7 +448,6 @@ class tribe {
             }
         }
     }
-
 }
 
 add_action('profile_update', array('tribe', 'profile_update'));
@@ -347,6 +457,8 @@ add_action('publish_post', array('tribe', 'publish_post'));
 add_action('show_user_profile', array('tribe', 'user_options_form'));
 //add_action('edit_user_profile', array('tribe', 'user_options_form'));
 add_action('personal_options_update', array('tribe', 'save_user_options'));
+add_action('admin_menu', array('tribe', 'admin_menu'));
+
 register_activation_hook(__FILE__, array('tribe', 'activate'));
 register_deactivation_hook(__FILE__, array('tribe', 'deactivate'));
 
