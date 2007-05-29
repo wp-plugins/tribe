@@ -3,7 +3,7 @@ Contributors: afex
 Tags: conversion, video game, team, tribe, clan, guild
 Requires at least: 2.2
 Tested up to: 2.2
-Stable tag: trunk
+Stable tag: 0.1b
 
 tribe is a conversion plugin which turns a normal Wordpress installation into a team management site for competitive video game teams.
 
