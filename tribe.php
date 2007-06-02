@@ -44,11 +44,25 @@ class tribe {
         
         return $return_users;
     }
+
+    function get_matches() {
+        global $wpdb;
+        
+        $matches = $wpdb->get_results('select * from wp_tribe_match order by played_on desc');
+        
+        foreach ($matches as $match) {
+            $match->maps = $wpdb->get_results('select * from wp_tribe_match_map where match_id = '.$match->match_id);
+            $match->attendance = $wpdb->get_results('select user_id, status from wp_tribe_attendance where match_id = '.$match->match_id);
+        }
+        
+        return $matches;
+    }
     
 // Private
 
     function admin_menu() {
         add_options_page('tribe', 'tribe', 'can_edit_tribe_options', basename(__FILE__), array('tribe', 'options_page'));
+        add_management_page('tribe', 'tribe - Matches', 'can_edit_matches', basename(__FILE__), array('tribe', 'matches_page'));
     }
 
     function activate() {
@@ -56,6 +70,7 @@ class tribe {
         $roles['administrator']['name'] = "Team Captain";
         $roles['administrator']['capabilities']['is_team_member'] = 1;
         $roles['administrator']['capabilities']['can_edit_tribe_options'] = 1;
+        $roles['administrator']['capabilities']['can_edit_matches'] = 1;
         $roles['editor']['name'] = 'Coordinator';
         $roles['editor']['capabilities']['is_team_member'] = 1;
         $roles['author']['name'] = 'Member';
@@ -82,20 +97,56 @@ class tribe {
                         'ping_status' => 'closed'
                     );
             $templates = get_page_templates();
-            if (isset($templates['roster'])) {
-                $args['page_template'] = $templates['roster'];
+            if (isset($templates['Roster'])) {
+                $args['page_template'] = $templates['Roster'];
             }
             wp_insert_post($args);
         }
-    
+        
+        if (get_page_by_title('Matches') == null) {
+            $args = array(
+                        'post_title' => 'Matches',
+                        'post_content' => '[tribe-matches]',
+                        'post_type' => 'page',
+                        'post_status' => 'publish',
+                        'comment_status' => 'closed',
+                        'ping_status' => 'closed'
+                    );
+            $matches_page_id = wp_insert_post($args);
+            
+            $args = array(
+                        'post_title' => 'History',
+                        'post_content' => '[tribe-history]',
+                        'post_type' => 'page',
+                        'post_status' => 'publish',
+                        'comment_status' => 'closed',
+                        'ping_status' => 'closed',
+                        'post_parent' => $matches_page_id
+                    );
+            $templates = get_page_templates();
+            if (isset($templates['Match History'])) {
+                $args['page_template'] = $templates['Match History'];
+            }
+            wp_insert_post($args);
+        }
+        
+
         $users = get_users_of_blog();
         foreach($users as $userdata) {
             $user = new WP_User($userdata->user_id);
-            if ($user->allcaps['is_team_member'] && $user->user_login != 'admin') {
+            // is_team_member doesn't work here yet, does cache need to be cleared?
+            // wp_cache_flush doesn't work
+            if (/*$user->allcaps['is_team_member'] &&*/
+                (array_search('author', $user->roles) !== false ||
+                array_search('editor', $user->roles) !== false || 
+                array_search('administrator', $user->roles) !== false) &&
+                $user->user_login != 'admin') {
                 $member_cat_id = get_cat_ID('Members');
                 if (category_exists($user->user_nicename)){
                     // they already have cat.  make sure its in the right place
-                    $cat = get_category($user->user_nicename);
+                    // copy the name since get_category has side effects
+                    $cat_name = $user->user_nicename;
+                    $cat = get_category(get_cat_ID($cat_name));
                     if ($cat->category_parent != $member_cat_id) {
                         $args = array(
                                     'cat_ID' => $cat->cat_ID,
@@ -124,7 +175,7 @@ class tribe {
                     }
                 } else {
                     // no page, create it
-                    _create_user_profile_page($user);
+                    tribe::_create_user_profile_page($user);
                 }
             }
         }
@@ -135,6 +186,7 @@ class tribe {
         $roles['administrator']['name'] = "Administrator";
         unset($roles['administrator']['capabilities']['is_team_member']);
         unset($roles['administrator']['capabilities']['can_edit_tribe_options']);
+        unset($roles['administrator']['capabilities']['can_edit_matches']);
         $roles['editor']['name'] = 'Editor';
         unset($roles['editor']['capabilities']['is_team_member']);
         $roles['author']['name'] = 'Author';
@@ -163,6 +215,13 @@ class tribe {
         if ($is_news) {
             $wpdb->query("update $wpdb->posts set comment_status = 'closed', ping_status = 'closed' where ID = $post_id");
         }
+    }
+    
+    function template_redirect() {
+        //global $post;
+        //print_r($post);
+        //include(TEMPLATEPATH . '/history.php');
+        //exit;
     }
     
     function user_options_form() {
@@ -284,6 +343,20 @@ class tribe {
     		</form>
     	</div>
         <?
+    }
+
+    function matches_page() {
+         if ($_SERVER["REQUEST_METHOD"] == "POST") {
+                
+            }
+        ?>
+    	<div class="wrap">
+    		<h2>Match Management</h2>
+    		<form method="post" action="<?=$_SERVER["REQUEST_URI"]?>">
+
+    		</form>
+    	</div>
+        <? 
     }
 
     function profile_update($user_id) {
@@ -446,7 +519,7 @@ class tribe {
             
             $args = array(
                 'post_title' => $user->user_nicename,
-                'post_content' => '[tribe-profile '.$user->user_id.']',
+                'post_content' => '[tribe-profile '.$user->ID.']',
                 'post_type' => 'page',
                 'post_status' => 'publish',
                 'post_parent' => $roster_page->ID,
@@ -455,14 +528,14 @@ class tribe {
                 );
             
             $templates = get_page_templates();
-            if (isset($templates['profile'])) {
-                $args['page_template'] = $templates['profile'];
+            if (isset($templates['Profile'])) {
+                $args['page_template'] = $templates['Profile'];
             }
             
             if ($create_new) {
-                wp_insert_post($args);
+                return wp_insert_post($args);
             } else {
-                wp_update_post($args);
+                return wp_update_post($args);
             }
         }
     }
@@ -476,6 +549,7 @@ add_action('show_user_profile', array('tribe', 'user_options_form'));
 //add_action('edit_user_profile', array('tribe', 'user_options_form'));
 add_action('personal_options_update', array('tribe', 'save_user_options'));
 add_action('admin_menu', array('tribe', 'admin_menu'));
+add_action('template_redirect', array('tribe', 'template_redirect'));
 
 register_activation_hook(__FILE__, array('tribe', 'activate'));
 register_deactivation_hook(__FILE__, array('tribe', 'deactivate'));
